@@ -28,7 +28,7 @@ contract Renting {
 
     event AgreementBroken(address indexed owner, address indexed hirer, bytes32 indexed id);
     event BreakRequested(address indexed requestedBy, bytes32 indexed propertyId);
-    event CreateComplaint(address indexed from, address indexed to, bytes32 problem);
+    event CreateComplaint(address indexed from, address indexed to, string problem);
     event PropertyCreated(address indexed  owner, bytes32 indexed id);
     event PropertyRented(address indexed hirer, bytes32 indexed id);
     event PropertyDeleted(bytes32 indexed id);
@@ -39,7 +39,7 @@ contract Renting {
     struct Complaint{
         address from;
         address to;
-        bytes32 reason;
+        string reason;
     }
 
     struct Hirer {
@@ -151,16 +151,16 @@ contract Renting {
 
     // In this function property owner makes a complaint for hirer
     function createComplaintForHirer(bytes32 _id, string calldata _reason) public isComplainable(_id) {
-        require(properties[_id].hirer == msg.sender, "You can't create complaint for yourself");
-        agreementComplaints[_id][msg.sender] = Complaint(msg.sender,properties[_id].hirer, bytes32(abi.encodePacked(_reason)));
-        emit CreateComplaint(msg.sender, properties[_id].hirer, bytes32(abi.encodePacked(_reason)));
+        require(properties[_id].owner == msg.sender, "You can't create complaint for yourself");
+        agreementComplaints[_id][msg.sender] = Complaint(msg.sender,properties[_id].hirer, _reason);
+        emit CreateComplaint(msg.sender, properties[_id].hirer, _reason);
     }
 
     // In this function hirer makes a complaint for property owner
     function createComplaintForOwner(bytes32 _id, string calldata _reason) public isComplainable(_id) {
-        require(properties[_id].owner == msg.sender, "You can't create complaint for yourself");
-        agreementComplaints[_id][msg.sender] = Complaint(msg.sender,properties[_id].owner, bytes32(abi.encodePacked(_reason)));
-        emit CreateComplaint(msg.sender, properties[_id].owner, bytes32(abi.encodePacked(_reason)));
+        require(properties[_id].hirer == msg.sender, "You can't create complaint for yourself");
+        agreementComplaints[_id][msg.sender] = Complaint(msg.sender,properties[_id].owner, _reason);
+        emit CreateComplaint(msg.sender, properties[_id].owner, _reason);
     }
 
     // Property owner creates his property to rent
@@ -175,6 +175,13 @@ contract Renting {
     function deleteProperty(bytes32 _id) public isDeletable(_id) {
         delete properties[_id];
         emit PropertyDeleted(_id);
+    }
+
+    // Get user's complaints about given id agreement
+    function getAgreementComplaint(bytes32 _id) public view returns(Complaint memory) {
+        require(msg.sender == properties[_id].owner || msg.sender == properties[_id].hirer,"You can't get complaints of this property");
+        require(agreementComplaints[_id][msg.sender].from == msg.sender,"You didn't created complaint");
+        return agreementComplaints[_id][msg.sender];
     }
 
     // Get all property ids which is rentable
