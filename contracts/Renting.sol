@@ -105,8 +105,16 @@ contract Renting {
         _;
     }
 
-    modifier isHirerCanRent(){
+    modifier isHirerCanRent(bytes32 _id){
         require(!blackList[msg.sender], "This user can't rent property");
+        address[] memory requests = rentRequests[_id];
+        bool user;
+        for (uint32 i = 0; i < requests.length; ++i) {
+            if (requests[i] == msg.sender){
+                user = true;
+            }
+        }
+        require(!user, "You can't sent request again for this property");
         _;
     }
 
@@ -191,7 +199,8 @@ contract Renting {
 
     // Get property info with given id
     function getPropertyInfo(bytes32 _id) public view returns(Property memory) {
-        return properties[_id];
+        Property memory property = properties[_id];
+        return property;
     }
 
     // Get rent requests with given property id
@@ -200,7 +209,7 @@ contract Renting {
     }
 
     // Create a rent request to property owner
-    function rentRequest(bytes32 _id) public isAvailable(_id) isHirerCanRent {
+    function rentRequest(bytes32 _id) public isAvailable(_id) isHirerCanRent(_id) {
         rentRequests[_id].push(msg.sender);
         emit RentRequestSent(msg.sender, _id);
     }
